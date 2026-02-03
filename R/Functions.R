@@ -24,7 +24,7 @@
 #' @param data A data frame containing gslea ecosystem data (e.g., \code{EA.data}).
 #' Must contain \code{year} and \code{ear} columns.
 #' @param var The temperature variable to plot. Can be unquoted (e.g., \code{sst.month10}).
-#' @param ears Vector of EAR identifiers (e.g., \code{0, 1, 2, "10/1"}). Defaults to \code{0}.
+#' @param EARs Vector of EAR identifiers (e.g., \code{0, 1, 2, "10/1"}). Defaults to \code{0}.
 #' @param years Numeric vector of length 2: \code{c(start, end)}. Defaults to \code{c(1990, 2023)}.
 #' @param lang Language for labels: \code{"en"}, \code{"fr"}, or \code{"both"}.
 #' @param fit_smooth Logical. If \code{TRUE}, fits a smoother (GAM by default).
@@ -76,7 +76,7 @@
 #' @export
 plot_gslea_temp <- function(data,
                             var,
-                            ears = 0,
+                            EARs = 0,
                             years = c(1990, 2023),
                             lang = "en",
                             fit_smooth = TRUE,
@@ -96,28 +96,31 @@ plot_gslea_temp <- function(data,
   lookup <- c(
     "sst.month11" = "November Sea Surface Temperature",
     "sst.month10" = "October Sea Surface Temperature",
-    "sst.month9" = "September Sea Surface Temperature",
-    "sst.month8" = "August Sea Surface Temperature",
-    "sst.month7" = "July Sea Surface Temperature",
-    "sst.month6" = "June Sea Surface Temperature",
+    "sst.month9"  = "September Sea Surface Temperature",
+    "sst.month8"  = "August Sea Surface Temperature",
+    "sst.month7"  = "July Sea Surface Temperature",
+    "sst.month6"  = "June Sea Surface Temperature",
     "sst.month5"  = "May Sea Surface Temperature",
-    "t.deep" = "Bottom Temperature",
-    "t.shallow" = "Bottom Temperature",
-    "t.150" = "Temperature at 150m",
-    "t.200" = "Temperature at 200m",
-    "t.250" = "Temperature at 250m",
-    "t.300" = "Temperature at 300m",
+    "t.deep"      = "Bottom Temperature",
+    "t.shallow"   = "Bottom Temperature",
+    "t.150"       = "Temperature at 150m",
+    "t.200"       = "Temperature at 200m",
+    "t.250"       = "Temperature at 250m",
+    "t.300"       = "Temperature at 300m",
     "tmax200.400" = "Maximum Temperature between 200 and 400m"
   )
 
   base_label <- if (var_name_raw %in% names(lookup)) lookup[var_name_raw] else var_name_raw
 
-  # 3. Data Processing
+  # 3. Data Processing (Updated for LONG format and capitalized column names)
   plot_df <- data %>%
-    dplyr::filter(year >= years[1], year <= years[2], ear %in% ears) %>%
-    dplyr::mutate(ear_str = as.character(ear))
+    dplyr::filter(year >= years[1],
+                  year <= years[2],
+                  EAR %in% EARs,
+                  variable == var_name_raw) %>%
+    dplyr::mutate(ear_str = as.character(EAR))
 
-  # Apply custom names if provided, otherwise default to "EAR #"
+  # Regional Naming
   if (!is.null(ear_names)) {
     plot_df <- plot_df %>%
       dplyr::mutate(ear_label = ifelse(ear_str %in% names(ear_names),
@@ -128,19 +131,36 @@ plot_gslea_temp <- function(data,
       dplyr::mutate(ear_label = paste("EAR", ear_str))
   }
 
-  # Ensure factors for plotting order
   plot_df <- plot_df %>%
     dplyr::mutate(ear_label = factor(ear_label)) %>%
-    dplyr::select(year, ear_label, value = !!target_var) %>%
+    dplyr::select(year, ear_label, value) %>%
     dplyr::filter(!is.na(value))
 
-  # 4. Multilingual Labeling
-  translated_label <- rosettafish::en2fr(base_label, lang = lang, translate = (lang != "en"))
-  if (grepl("sst|temp", var_name_raw, ignore.case = TRUE)) {
+  # 4. Bilingual Labeling
+  # If lang is "fr" or "both", we translate.
+  # Note: rosettafish::en2fr simply takes the string.
+  should_translate <- (lang %in% c("fr", "both"))
+
+  translated_label <- if(should_translate) {
+    rosettafish::en2fr(base_label)
+  } else {
+    base_label
+  }
+
+  # Append units
+  if (grepl("sst|temp|^t\\.|tmax", var_name_raw, ignore.case = TRUE)) {
     translated_label <- paste0(translated_label, " (°C)")
   }
 
-  final_xlab <- if(is.null(xlab)) rosettafish::en2fr("Year", lang = lang, translate = (lang != "en")) else xlab
+  # Translate Axis Titles
+  final_xlab <- if(!is.null(xlab)) {
+    xlab
+  } else if(should_translate) {
+    rosettafish::en2fr("Year")
+  } else {
+    "Year"
+  }
+
   final_ylab <- if(is.null(ylab)) translated_label else ylab
 
   # 5. Build Plot
@@ -176,8 +196,7 @@ plot_gslea_temp <- function(data,
 }
 
 
-
-#' Plot GSLEA Ice and Seasonal Phenology by EAR
+#' Plot gslea Ice and Seasonal Phenology by EAR
 #'
 #' @description
 #' Visualizes ice-related and seasonal warming/cooling metrics from the gslea
@@ -187,7 +206,7 @@ plot_gslea_temp <- function(data,
 #' @param data A data frame containing gslea ecosystem data (e.g., \code{EA.data}).
 #' Must contain \code{year} and \code{ear} columns.
 #' @param var The ice/seasonal variable to plot (unquoted, e.g., \code{ice.duration}, \code{start.10}).
-#' @param ears Vector of EAR identifiers (0-7, 50, 10/1). Defaults to \code{0}.
+#' @param EARs Vector of EAR identifiers (e.g., \code{0, 1, 5, "10/1"}). Defaults to \code{0}.
 #' @param years Numeric vector of length 2: \code{c(start, end)}. Defaults to \code{c(1990, 2023)}.
 #' @param lang Language for labels: \code{"en"}, \code{"fr"}, or \code{"both"}.
 #' @param fit_smooth Logical. If \code{TRUE}, fits a smoother (GAM by default).
@@ -230,7 +249,7 @@ plot_gslea_temp <- function(data,
 #' @export
 plot_gslea_ice <- function(data,
                            var,
-                           ears = 0,
+                           EARs = 0,
                            years = c(1990, 2023),
                            lang = "en",
                            fit_smooth = TRUE,
@@ -272,12 +291,15 @@ plot_gslea_ice <- function(data,
     unit <- " (Day of Year)"
   }
 
-  # 4. Data Processing
+  # 4. Data Processing (Long Format + Capital EAR)
   plot_df <- data %>%
-    dplyr::filter(year >= years[1], year <= years[2], ear %in% ears) %>%
-    dplyr::mutate(ear_str = as.character(ear))
+    dplyr::filter(year >= years[1],
+                  year <= years[2],
+                  EAR %in% EARs,
+                  variable == var_name_raw) %>%
+    dplyr::mutate(ear_str = as.character(EAR))
 
-  # Regional Naming Logic
+  # Regional Naming logic
   if (!is.null(ear_names)) {
     plot_df <- plot_df %>%
       dplyr::mutate(ear_label = ifelse(ear_str %in% names(ear_names),
@@ -290,7 +312,7 @@ plot_gslea_ice <- function(data,
 
   plot_df <- plot_df %>%
     dplyr::mutate(ear_label = factor(ear_label)) %>%
-    dplyr::select(year, ear_label, value = !!target_var) %>%
+    dplyr::select(year, ear_label, value) %>%
     dplyr::filter(!is.na(value))
 
   # 5. Multilingual Labeling

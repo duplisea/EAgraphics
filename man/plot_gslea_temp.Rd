@@ -7,7 +7,7 @@
 plot_gslea_temp(
   data,
   var,
-  ears = 0,
+  EARs = 0,
   years = c(1990, 2023),
   lang = "en",
   fit_smooth = TRUE,
@@ -26,7 +26,7 @@ Must contain \code{year} and \code{ear} columns.}
 
 \item{var}{The temperature variable to plot. Can be unquoted (e.g., \code{sst.month10}).}
 
-\item{ears}{Vector of EAR identifiers (e.g., \code{0, 1, 2, "10/1"}). Defaults to \code{0}.}
+\item{EARs}{Vector of EAR identifiers (e.g., \code{0, 1, 2, "10/1"}). Defaults to \code{0}.}
 
 \item{years}{Numeric vector of length 2: \code{c(start, end)}. Defaults to \code{c(1990, 2023)}.}
 

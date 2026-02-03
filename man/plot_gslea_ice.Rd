@@ -2,12 +2,12 @@
 % Please edit documentation in R/Functions.R
 \name{plot_gslea_ice}
 \alias{plot_gslea_ice}
-\title{Plot GSLEA Ice and Seasonal Phenology by EAR}
+\title{Plot gslea Ice and Seasonal Phenology by EAR}
 \usage{
 plot_gslea_ice(
   data,
   var,
-  ears = 0,
+  EARs = 0,
   years = c(1990, 2023),
   lang = "en",
   fit_smooth = TRUE,
@@ -26,7 +26,7 @@ Must contain \code{year} and \code{ear} columns.}
 
 \item{var}{The ice/seasonal variable to plot (unquoted, e.g., \code{ice.duration}, \code{start.10}).}
 
-\item{ears}{Vector of EAR identifiers (0-7, 50, 10/1). Defaults to \code{0}.}
+\item{EARs}{Vector of EAR identifiers (e.g., \code{0, 1, 5, "10/1"}). Defaults to \code{0}.}
 
 \item{years}{Numeric vector of length 2: \code{c(start, end)}. Defaults to \code{c(1990, 2023)}.}
 
