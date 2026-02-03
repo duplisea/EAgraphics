@@ -13,9 +13,10 @@ Description: This package provides user friendly functions to plot ecosystem inf
 	It taken ecosystem information from packages such as gslea to produce high quality visualizations of the data.   
 License: Crown Copyright
 Depends:
-	ggplot2,
-	dplyr,
-	mgcv,
+    ggplot2,
+    dplyr,
+    mgcv,
+    R (>= 3.5)
 Remotes:
 	Github::duplisea/gslea
 	GitHub::pbs-assess/rosettafish
