@@ -2192,13 +2192,13 @@ plot_predator_raw_scaled <- function(data = gslea::EA.data,
     variable = c("harpseal.totalabundance.nwatl.2024", "greyseal.totalabundance.acw.2021", "gannet.n", "abft.n"),
     en = c("Harp Seal (NWA)", "Grey Seal (NWA)", "Northern Gannet (GSL)", "Atlantic Bluefin Tuna (GSL)"),
     fr = c("Phoque du Groenland (ANO)", "Phoque gris (ANO)", "Fou de Bassan (GSL)", "Thon rouge de l'Atlantique (GSL)"),
-    scale_factor = c(100, 10, 1, 1), # The division factors
+    scale_factor = c(100, 1, 1, 1), # The division factors
     stringsAsFactors = FALSE
   )
 
   terms <- list(
-    en = c(xlab = "Year", ylab = "Abundance (scaled)", unit100 = "/ 100", unit10 = "/ 10"),
-    fr = c(xlab = "Année", ylab = "Abondance (indexée)", unit100 = "/ 100", unit10 = "/ 10")
+    en = c(xlab = "Year", ylab = "Abundance (scaled)", unit100 = "/ 100"),
+    fr = c(xlab = "Année", ylab = "Abondance (indexée)", unit100 = "/ 100")
   )
 
   # 2. Data Prep & Transformation
@@ -2220,7 +2220,6 @@ plot_predator_raw_scaled <- function(data = gslea::EA.data,
       species_name = if(lang == "fr") fr else en,
       legend_label = dplyr::case_when(
         scale_factor == 100 ~ paste(species_name, terms[[lang]][["unit100"]]),
-        scale_factor == 10 ~ paste(species_name, terms[[lang]][["unit10"]]),
         TRUE ~ species_name
       )
     )
