@@ -1928,13 +1928,13 @@ plot_size_spectrum_anomalies <- function(data,
                                          log_transform = TRUE,
                                          base_size = 14) {
 
-  # 1. Dictionary (Updated to "Anomalies")
+  # 1. Dictionary (Updated to Plural "Anomalies")
   terms <- list(
     en = c(xlab = "Year", ylab = "Length class (cm)", leg = "Anomaly"),
     fr = c(xlab = "Année", ylab = "Classe de longueur (cm)", leg = "Anomalies")
   )
 
-  # [Data Prep code remains the same as previous version...]
+  # 2. Independent Anomaly Calculation
   df <- data |>
     dplyr::mutate(working_val = if(log_transform) log1p(value) else value) |>
     dplyr::group_by(EAR, variable) |>
@@ -1956,27 +1956,34 @@ plot_size_spectrum_anomalies <- function(data,
       size_grp = stats::reorder(size_grp, as.numeric(low))
     )
 
-  data_min <- min(df$year, na.rm = TRUE); data_max <- max(df$year, na.rm = TRUE)
+  # 3. Timeline Alignment
+  data_min <- min(df$year, na.rm = TRUE)
+  data_max <- max(df$year, na.rm = TRUE)
   global_min <- if(!is.null(year_range)) year_range[1] else data_min
   global_max <- if(!is.null(year_range)) year_range[2] else data_max
 
-  # 4. Panel Builder
+  # 4. Panel Builder Helper
   make_panel <- function(sub_data, show_x = TRUE) {
     ggplot2::ggplot(sub_data, ggplot2::aes(x = year, y = size_grp, fill = anomaly)) +
       ggplot2::geom_tile(color = "black", linewidth = 0.2, na.rm = TRUE) +
       ggplot2::scale_fill_steps2(
         low = "#0000FF", mid = "white", high = "#FF0000", midpoint = 0,
-        # UPDATED: Breaks and labels to match image_b1413e.png exactly
+        # EXACT MATCH: 9 breaks/labels for 8 boxes
         breaks = c(-3, -2, -1, -0.5, 0, 0.5, 1, 2, 3),
         labels = c("-3", "-2", "-1", "-0.5", "0", "0.5", "1", "2", "3"),
         limits = c(-3, 3),
         oob = scales::squish,
         na.value = "transparent",
         guide = ggplot2::guide_colorsteps(
-          barwidth = 20, barheight = 1, show.limits = FALSE,
-          title.position = "top", title.hjust = 0.5,
-          frame.colour = "black", frame.linewidth = 0.5,
-          ticks.colour = "black", ticks.linewidth = 0.5
+          barwidth = 20,
+          barheight = 1,
+          show.limits = TRUE, # Ensures -3 and 3 are at the very ends
+          title.position = "top",
+          title.hjust = 0.5,
+          frame.colour = "black",
+          frame.linewidth = 0.5,
+          ticks.colour = "black",
+          ticks.linewidth = 0.5
         )
       ) +
       ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0, add = 0.6),
@@ -1988,14 +1995,19 @@ plot_size_spectrum_anomalies <- function(data,
       ggplot2::theme_bw(base_size = base_size) +
       ggplot2::theme(
         panel.grid = ggplot2::element_blank(),
-        axis.text.x = if(!show_x) ggplot2::element_blank() else ggplot2::element_text(angle = 90, vjust = 0.5)
+        axis.text.x = if(!show_x) ggplot2::element_blank() else ggplot2::element_text(angle = 90, vjust = 0.5),
+        axis.ticks.x = if(!show_x) ggplot2::element_blank() else ggplot2::element_line()
       )
   }
 
+  # 5. Assemble
   p1 <- make_panel(dplyr::filter(df, EAR == 100), show_x = FALSE)
   p2 <- make_panel(dplyr::filter(df, EAR == 200), show_x = TRUE)
-  (p1 / p2) + patchwork::plot_layout(guides = "collect") +
-    patchwork::plot_annotation(tag_levels = 'A') & ggplot2::theme(legend.position = "bottom")
+
+  (p1 / p2) +
+    patchwork::plot_layout(guides = "collect") +
+    patchwork::plot_annotation(tag_levels = 'A') &
+    ggplot2::theme(legend.position = "bottom")
 }
 
 #' Plot Trophic Guild Condition Anomalies
