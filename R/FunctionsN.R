@@ -1928,32 +1928,27 @@ plot_size_spectrum_anomalies <- function(data,
                                          log_transform = TRUE,
                                          base_size = 14) {
 
+  # 1. Dictionary
   terms <- list(
     en = c(xlab = "Year", ylab = "Length class (cm)", leg = "Anomalies"),
     fr = c(xlab = "Année", ylab = "Classe de longueur (cm)", leg = "Anomalies")
   )
 
-  # 1. Data Prep & Continuous Calculation
+  # 2. Data Preparation
   df <- data |>
     dplyr::mutate(working_val = if(log_transform) log1p(value) else value) |>
     dplyr::group_by(EAR, variable) |>
     dplyr::mutate(
       mean_val = mean(working_val, na.rm = TRUE),
       sd_val   = sd(working_val, na.rm = TRUE),
-      anomaly_cont = if(standardize) {
+      anomaly  = if(standardize) {
         dplyr::if_else(sd_val > 0, (working_val - mean_val) / sd_val, 0)
       } else {
         working_val - mean_val
       }
     ) |>
-    dplyr::ungroup()
-
-  # 2. BINNING LOGIC: Force into 9 distinct categories for the legend
-  df <- df |>
+    dplyr::ungroup() |>
     dplyr::mutate(
-      anomaly = cut(anomaly_cont,
-                    breaks = c(-Inf, -2.5, -1.5, -0.75, -0.25, 0.25, 0.75, 1.5, 2.5, Inf),
-                    labels = c("-3", "-2", "-1", "-0.5", "0", "0.5", "1", "2", "3")),
       nums = stringr::str_extract_all(variable, "\\d+"),
       low  = purrr::map_chr(nums, ~ .x[1]),
       high = purrr::map_chr(nums, ~ .x[2]),
@@ -1961,39 +1956,40 @@ plot_size_spectrum_anomalies <- function(data,
       size_grp = stats::reorder(size_grp, as.numeric(low))
     )
 
-  # 3. Scale Configuration (9 Colors for 9 Boxes)
-  # Matching the specific shades of blue, purple, white, and red in your image
-  exact_colors <- c(
-    "-3"   = "#0000FF", # Pure Blue
-    "-2"   = "#8470FF", # Light Slate Blue
-    "-1"   = "#B4A7FF", # Pale Purple
-    "-0.5" = "#E1D9FF", # Very Light Purple
-    "0"    = "#FFFFFF", # White
-    "0.5"  = "#FFEDE3", # Pale Peach
-    "1"    = "#FFB299", # Light Coral
-    "2"    = "#FF6F4D", # Bright Coral/Orange
-    "3"    = "#FF0000"  # Pure Red
-  )
-
+  # 3. Timeline
   global_min <- if(!is.null(year_range)) year_range[1] else min(df$year, na.rm = TRUE)
   global_max <- if(!is.null(year_range)) year_range[2] else max(df$year, na.rm = TRUE)
 
-  # 4. Panel Builder
+  # 4. Legend Configuration for 9 Boxes
+  # We define 10 boundaries to create 9 intervals (bins)
+  # The bins vary in width to allow labels like -0.5 and 0 to be centered correctly
+  breaks_9bins <- c(-3.5, -2.5, -1.5, -0.75, -0.25, 0.25, 0.75, 1.5, 2.5, 3.5)
+  labels_9bins <- c("-3", "-2", "-1", "-0.5", "0", "0.5", "1", "2", "3")
+
+  # Hex codes for 4 blues, 1 white, 4 reds
+  colors_9bins <- c("#0000FF", "#6A5ACD", "#9370DB", "#E6E6FA", # 4 Blues/Purples
+                    "#FFFFFF",                                  # 1 White (Center)
+                    "#FFE4E1", "#FA8072", "#FF4500", "#FF0000") # 4 Reds/Corals
+
+  # 5. Panel Builder
   make_panel <- function(sub_data, show_x = TRUE) {
     ggplot2::ggplot(sub_data, ggplot2::aes(x = year, y = size_grp, fill = anomaly)) +
-      ggplot2::geom_tile(color = "black", linewidth = 0.2) +
-      # Use manual scale to force the 9-box legend
-      ggplot2::scale_fill_manual(
-        values = exact_colors,
-        drop = FALSE, # Ensures all 9 boxes show even if a specific plot lacks a value
-        guide = ggplot2::guide_legend(
+      ggplot2::geom_tile(color = "black", linewidth = 0.2, na.rm = TRUE) +
+      ggplot2::scale_fill_stepsn(
+        colors = colors_9bins,
+        breaks = breaks_9bins,
+        limits = c(-3.5, 3.5),
+        oob = scales::squish,
+        guide = ggplot2::guide_colorsteps(
+          barwidth = 20,
+          barheight = 1,
           title.position = "top",
           title.hjust = 0.5,
-          nrow = 1,
-          keywidth = ggplot2::unit(1.5, "lines"),
-          keyheight = ggplot2::unit(0.8, "lines"),
-          label.position = "bottom",
-          override.aes = list(color = "black", linewidth = 0.5) # Adds the black box frames
+          frame.colour = "black",
+          ticks.colour = "black",
+          # We manually set the labels to appear at the centers of the bins
+          at = c(-3, -2, -1, -0.5, 0, 0.5, 1, 2, 3),
+          labels = labels_9bins
         )
       ) +
       ggplot2::scale_x_continuous(expand = ggplot2::expansion(add = 0.6),
@@ -2005,18 +2001,15 @@ plot_size_spectrum_anomalies <- function(data,
       ggplot2::theme_bw(base_size = base_size) +
       ggplot2::theme(
         panel.grid = ggplot2::element_blank(),
-        axis.text.x = if(!show_x) ggplot2::element_blank() else ggplot2::element_text(angle = 90, vjust = 0.5),
-        legend.spacing.x = ggplot2::unit(0, 'cm') # Glues the boxes together
+        axis.text.x = if(!show_x) ggplot2::element_blank() else ggplot2::element_text(angle = 90, vjust = 0.5)
       )
   }
 
   p1 <- make_panel(dplyr::filter(df, EAR == 100), show_x = FALSE)
   p2 <- make_panel(dplyr::filter(df, EAR == 200), show_x = TRUE)
 
-  (p1 / p2) +
-    patchwork::plot_layout(guides = "collect") +
-    patchwork::plot_annotation(tag_levels = 'A') &
-    ggplot2::theme(legend.position = "bottom")
+  (p1 / p2) + patchwork::plot_layout(guides = "collect") +
+    patchwork::plot_annotation(tag_levels = 'A') & ggplot2::theme(legend.position = "bottom")
 }
 
 #' Plot Trophic Guild Condition Anomalies
