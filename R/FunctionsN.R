@@ -1964,13 +1964,30 @@ plot_size_spectrum_anomalies <- function(data,
   make_panel <- function(sub_data, show_x = TRUE) {
     ggplot2::ggplot(sub_data, ggplot2::aes(x = year, y = size_grp, fill = anomaly)) +
       ggplot2::geom_tile(color = "black", linewidth = 0.2, na.rm = TRUE) +
-      # Using a standard divergent gradient as our starting point
-      ggplot2::scale_fill_gradient2(
-        low = "blue",
-        mid = "white",
-        high = "red",
-        midpoint = 0,
-        na.value = "transparent"
+      ggplot2::scale_fill_stepsn(
+        colors = c("#0000FF", "#7069FF", "#9B92FF", "#C7C1FF",
+                   "#FFFFFF",
+                   "#FFD8C7", "#FFB299", "#FF7B5C", "#FF0000"),
+        # 8 breaks create 9 equal-width bins for consistent increments
+        breaks = seq(-1.75, 1.75, by = 0.5),
+        limits = c(-2.25, 2.25),
+        oob = scales::squish,
+        na.value = "transparent",
+        guide = ggplot2::guide_colorsteps(
+          barwidth = 22,
+          barheight = 1,
+          title.position = "top",
+          title.hjust = 0.5,
+          frame.colour = "black",
+          ticks.colour = "black",
+          # Custom label function to add < and > as requested
+          labels = function(x) {
+            labels <- as.character(x)
+            labels[x == -2] <- "<-2"
+            labels[x == 2]  <- ">2"
+            labels
+          }
+        )
       ) +
       ggplot2::scale_x_continuous(
         expand = ggplot2::expansion(mult = 0, add = 0.6),
