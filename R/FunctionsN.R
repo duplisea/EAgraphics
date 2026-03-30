@@ -1972,51 +1972,24 @@ plot_size_spectrum_anomalies <- function(data,
   make_panel <- function(sub_data, show_x = TRUE) {
     ggplot2::ggplot(sub_data, ggplot2::aes(x = year, y = size_grp, fill = anomaly)) +
       ggplot2::geom_tile(color = "black", linewidth = 0.2, na.rm = TRUE) +
-
-      ggplot2::scale_fill_stepsn(
-        colors = c("#0000FF", "#7069FF", "#9B92FF", "#C7C1FF",
-                   "#FFFFFF",
-                   "#FFD8C7", "#FFB299", "#FF7B5C", "#FF0000"),
-        # Define breaks and labels here, NOT inside the guide
-        breaks = seq(-1.75, 1.75, by = 0.5),
-        labels = function(x) {
-          # This creates the centered labels with < and > symbols
-          labs <- as.character(seq(-2, 2, by = 0.5))
-          labs[1] <- "<-2"
-          labs[length(labs)] <- ">2"
-          labs
-        },
-        limits = c(-2.25, 2.25),
-        oob = scales::squish,
-        na.value = "transparent",
-        guide = ggplot2::guide_colorsteps(
-          barwidth = 22,
-          barheight = 1,
-          title.position = "top",
-          title.hjust = 0.5,
-          frame.colour = "black",
-          ticks.colour = "black",
-          show.limits = FALSE # Prevents extra labels at the very ends
-        )
+      # Using a standard divergent gradient as our starting point
+      ggplot2::scale_fill_gradient2(
+        low = "blue",
+        mid = "white",
+        high = "red",
+        midpoint = 0,
+        na.value = "transparent"
       ) +
-
       ggplot2::scale_x_continuous(
         expand = ggplot2::expansion(mult = 0, add = 0.6),
         limits = c(global_min - 0.5, global_max + 0.5),
         breaks = x_breaks %||% seq(global_min, global_max, 5)
       ) +
-
       ggplot2::labs(
         x = if(show_x) terms[[lang]][["xlab"]] else NULL,
         y = terms[[lang]][["ylab"]],
         fill = terms[[lang]][["leg"]]
       ) +
-      ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0, add = 0.6),
-                                  limits = c(global_min - 0.5, global_max + 0.5),
-                                  breaks = x_breaks %||% seq(global_min, global_max, 5)) +
-      ggplot2::labs(x = if(show_x) terms[[lang]][["xlab"]] else NULL,
-                    y = terms[[lang]][["ylab"]],
-                    fill = terms[[lang]][["leg"]]) +
       ggplot2::theme_bw(base_size = base_size) +
       ggplot2::theme(
         panel.grid = ggplot2::element_blank(),
