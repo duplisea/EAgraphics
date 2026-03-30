@@ -1925,7 +1925,7 @@ plot_size_spectrum_anomalies <- function(data,
                                          year_range = NULL,
                                          x_breaks = NULL,
                                          standardize = TRUE,
-                                         log_transform = TRUE,
+                                         log_transform = FALSE,
                                          base_size = 14) {
 
   # 1. Dictionary
@@ -1934,7 +1934,7 @@ plot_size_spectrum_anomalies <- function(data,
     fr = c(xlab = "Année", ylab = "Classe de longueur (cm)", leg = "Anomalie")
   )
 
-  # 2. Data Preparation & Anomaly Calculation
+  # 2. Independent Anomaly Calculation
   df <- data |>
     dplyr::mutate(working_val = if(log_transform) log1p(value) else value) |>
     dplyr::group_by(EAR, variable) |>
@@ -1956,9 +1956,17 @@ plot_size_spectrum_anomalies <- function(data,
       size_grp = stats::reorder(size_grp, as.numeric(low))
     )
 
-  # 3. Timeline Alignment
-  global_min <- if(!is.null(year_range)) year_range[1] else min(df$year, na.rm = TRUE)
-  global_max <- if(!is.null(year_range)) year_range[2] else max(df$year, na.rm = TRUE)
+  # 3. Timeline Alignment Logic
+  data_min <- min(df$year, na.rm = TRUE)
+  data_max <- max(df$year, na.rm = TRUE)
+
+  if (!is.null(year_range)) {
+    global_min <- year_range[1]
+    global_max <- year_range[2]
+  } else {
+    global_min <- data_min
+    global_max <- data_max
+  }
 
   # 4. Panel Builder Helper
   make_panel <- function(sub_data, show_x = TRUE) {
@@ -1999,6 +2007,12 @@ plot_size_spectrum_anomalies <- function(data,
         y = terms[[lang]][["ylab"]],
         fill = terms[[lang]][["leg"]]
       ) +
+      ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0, add = 0.6),
+                                  limits = c(global_min - 0.5, global_max + 0.5),
+                                  breaks = x_breaks %||% seq(global_min, global_max, 5)) +
+      ggplot2::labs(x = if(show_x) terms[[lang]][["xlab"]] else NULL,
+                    y = terms[[lang]][["ylab"]],
+                    fill = terms[[lang]][["leg"]]) +
       ggplot2::theme_bw(base_size = base_size) +
       ggplot2::theme(
         panel.grid = ggplot2::element_blank(),
@@ -2007,7 +2021,7 @@ plot_size_spectrum_anomalies <- function(data,
       )
   }
 
-  # 5. Assemble Panels
+  # 5. Assemble
   p1 <- make_panel(dplyr::filter(df, EAR == 100), show_x = FALSE)
   p2 <- make_panel(dplyr::filter(df, EAR == 200), show_x = TRUE)
 
