@@ -1928,13 +1928,13 @@ plot_size_spectrum_anomalies <- function(data,
                                          log_transform = TRUE,
                                          base_size = 14) {
 
-  # 1. Dictionary (Updated to Plural "Anomalies")
+  # 1. Dictionary
   terms <- list(
-    en = c(xlab = "Year", ylab = "Length class (cm)", leg = "Anomaly"),
+    en = c(xlab = "Year", ylab = "Length class (cm)", leg = "Anomalies"),
     fr = c(xlab = "Année", ylab = "Classe de longueur (cm)", leg = "Anomalies")
   )
 
-  # 2. Independent Anomaly Calculation
+  # 2. Data Preparation
   df <- data |>
     dplyr::mutate(working_val = if(log_transform) log1p(value) else value) |>
     dplyr::group_by(EAR, variable) |>
@@ -1956,37 +1956,43 @@ plot_size_spectrum_anomalies <- function(data,
       size_grp = stats::reorder(size_grp, as.numeric(low))
     )
 
-  # 3. Timeline Alignment
-  data_min <- min(df$year, na.rm = TRUE)
-  data_max <- max(df$year, na.rm = TRUE)
-  global_min <- if(!is.null(year_range)) year_range[1] else data_min
-  global_max <- if(!is.null(year_range)) year_range[2] else data_max
+  # 3. Timeline
+  global_min <- if(!is.null(year_range)) year_range[1] else min(df$year, na.rm = TRUE)
+  global_max <- if(!is.null(year_range)) year_range[2] else max(df$year, na.rm = TRUE)
 
-  # 4. Panel Builder Helper
+  # 4. Legend Configuration for 9 Boxes
+  # We define 10 boundaries to create 9 intervals (bins)
+  # The bins vary in width to allow labels like -0.5 and 0 to be centered correctly
+  breaks_9bins <- c(-3.5, -2.5, -1.5, -0.75, -0.25, 0.25, 0.75, 1.5, 2.5, 3.5)
+  labels_9bins <- c("-3", "-2", "-1", "-0.5", "0", "0.5", "1", "2", "3")
+
+  # Hex codes for 4 blues, 1 white, 4 reds
+  colors_9bins <- c("#0000FF", "#6A5ACD", "#9370DB", "#E6E6FA", # 4 Blues/Purples
+                    "#FFFFFF",                                  # 1 White (Center)
+                    "#FFE4E1", "#FA8072", "#FF4500", "#FF0000") # 4 Reds/Corals
+
+  # 5. Panel Builder
   make_panel <- function(sub_data, show_x = TRUE) {
     ggplot2::ggplot(sub_data, ggplot2::aes(x = year, y = size_grp, fill = anomaly)) +
       ggplot2::geom_tile(color = "black", linewidth = 0.2, na.rm = TRUE) +
-      ggplot2::scale_fill_steps2(
-        low = "#0000FF", mid = "white", high = "#FF0000", midpoint = 0,
-        # EXACT MATCH: 9 breaks/labels for 8 boxes
-        breaks = c(-3, -2, -1, -0.5, 0, 0.5, 1, 2, 3),
-        labels = c("-3", "-2", "-1", "-0.5", "0", "0.5", "1", "2", "3"),
-        limits = c(-3, 3),
+      ggplot2::scale_fill_stepsn(
+        colors = colors_9bins,
+        breaks = breaks_9bins,
+        limits = c(-3.5, 3.5),
         oob = scales::squish,
-        na.value = "transparent",
         guide = ggplot2::guide_colorsteps(
           barwidth = 20,
           barheight = 1,
-          show.limits = TRUE, # Ensures -3 and 3 are at the very ends
           title.position = "top",
           title.hjust = 0.5,
           frame.colour = "black",
-          frame.linewidth = 0.5,
           ticks.colour = "black",
-          ticks.linewidth = 0.5
+          # We manually set the labels to appear at the centers of the bins
+          at = c(-3, -2, -1, -0.5, 0, 0.5, 1, 2, 3),
+          labels = labels_9bins
         )
       ) +
-      ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0, add = 0.6),
+      ggplot2::scale_x_continuous(expand = ggplot2::expansion(add = 0.6),
                                   limits = c(global_min - 0.5, global_max + 0.5),
                                   breaks = x_breaks %||% seq(global_min, global_max, 5)) +
       ggplot2::labs(x = if(show_x) terms[[lang]][["xlab"]] else NULL,
@@ -1995,19 +2001,15 @@ plot_size_spectrum_anomalies <- function(data,
       ggplot2::theme_bw(base_size = base_size) +
       ggplot2::theme(
         panel.grid = ggplot2::element_blank(),
-        axis.text.x = if(!show_x) ggplot2::element_blank() else ggplot2::element_text(angle = 90, vjust = 0.5),
-        axis.ticks.x = if(!show_x) ggplot2::element_blank() else ggplot2::element_line()
+        axis.text.x = if(!show_x) ggplot2::element_blank() else ggplot2::element_text(angle = 90, vjust = 0.5)
       )
   }
 
-  # 5. Assemble
   p1 <- make_panel(dplyr::filter(df, EAR == 100), show_x = FALSE)
   p2 <- make_panel(dplyr::filter(df, EAR == 200), show_x = TRUE)
 
-  (p1 / p2) +
-    patchwork::plot_layout(guides = "collect") +
-    patchwork::plot_annotation(tag_levels = 'A') &
-    ggplot2::theme(legend.position = "bottom")
+  (p1 / p2) + patchwork::plot_layout(guides = "collect") +
+    patchwork::plot_annotation(tag_levels = 'A') & ggplot2::theme(legend.position = "bottom")
 }
 
 #' Plot Trophic Guild Condition Anomalies
