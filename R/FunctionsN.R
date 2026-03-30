@@ -1972,29 +1972,40 @@ plot_size_spectrum_anomalies <- function(data,
   make_panel <- function(sub_data, show_x = TRUE) {
     ggplot2::ggplot(sub_data, ggplot2::aes(x = year, y = size_grp, fill = anomaly)) +
       ggplot2::geom_tile(color = "black", linewidth = 0.2, na.rm = TRUE) +
-      # Binned Scale strictly following scientific reporting standards
-      ggplot2::scale_fill_steps2(
-        low = "#0000FF",
-        mid = "white",
-        high = "#FF0000",
-        midpoint = 0,
-        breaks = c(-3, -2, -1, -0.5, 0.5, 1, 2, 3),
-        labels = c("<-3", "-2", "-1", "-0.5", "0.5", "1", "2", ">3"),
-        limits = c(-3, 3),
+      ggplot2::scale_fill_stepsn(
+        colors = c("#0000FF", "#7069FF", "#9B92FF", "#C7C1FF",
+                   "#FFFFFF",
+                   "#FFD8C7", "#FFB299", "#FF7B5C", "#FF0000"),
+        # 8 breaks create 9 equal-width bins for consistent increments
+        breaks = seq(-1.75, 1.75, by = 0.5),
+        limits = c(-2.25, 2.25),
         oob = scales::squish,
         na.value = "transparent",
         guide = ggplot2::guide_colorsteps(
-          barwidth = 20,
+          barwidth = 22,
           barheight = 1,
-          show.limits = FALSE,
           title.position = "top",
           title.hjust = 0.5,
-          # Outline and ticks to prevent 'white-out' in the center of the bar
           frame.colour = "black",
-          frame.linewidth = 0.5,
           ticks.colour = "black",
-          ticks.linewidth = 0.5
+          # Custom label function to add < and > as requested
+          labels = function(x) {
+            labels <- as.character(x)
+            labels[x == -2] <- "<-2"
+            labels[x == 2]  <- ">2"
+            labels
+          }
         )
+      ) +
+      ggplot2::scale_x_continuous(
+        expand = ggplot2::expansion(mult = 0, add = 0.6),
+        limits = c(global_min - 0.5, global_max + 0.5),
+        breaks = x_breaks %||% seq(global_min, global_max, 5)
+      ) +
+      ggplot2::labs(
+        x = if(show_x) terms[[lang]][["xlab"]] else NULL,
+        y = terms[[lang]][["ylab"]],
+        fill = terms[[lang]][["leg"]]
       ) +
       ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0, add = 0.6),
                                   limits = c(global_min - 0.5, global_max + 0.5),
