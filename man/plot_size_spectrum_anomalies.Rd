@@ -10,7 +10,7 @@ plot_size_spectrum_anomalies(
   year_range = NULL,
   x_breaks = NULL,
   standardize = TRUE,
-  log_transform = FALSE,
+  log_transform = TRUE,
   base_size = 14
 )
 }
