@@ -1227,8 +1227,8 @@ plot_landings_stacked <- function(data,
 
   if (is_guild_data) {
     auto_order <- guild_keys
-  } else if (any(unique_in_data %in% c("Atlantic herring", "Atlantic mackerel", "Northern shrimp"))) {
-    auto_order <- c("Atlantic herring", "Atlantic mackerel", "Northern shrimp")
+  } else if (any(unique_in_data %in% c("Northern shrimp", "Atlantic herring", "Atlantic mackerel"))) {
+    auto_order <- c("Northern shrimp","Atlantic herring", "Atlantic mackerel")
   } else {
     auto_order <- c("pelagics", "crustaceans", "groundfish")
   }
