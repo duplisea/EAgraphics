@@ -1972,24 +1972,36 @@ plot_size_spectrum_anomalies <- function(data,
   make_panel <- function(sub_data, show_x = TRUE) {
     ggplot2::ggplot(sub_data, ggplot2::aes(x = year, y = size_grp, fill = anomaly)) +
       ggplot2::geom_tile(color = "black", linewidth = 0.2, na.rm = TRUE) +
-      # Using a standard divergent gradient as our starting point
-      ggplot2::scale_fill_gradient2(
-        low = "blue",
+      # Binned Scale strictly following scientific reporting standards
+      ggplot2::scale_fill_steps2(
+        low = "#0000FF",
         mid = "white",
-        high = "red",
+        high = "#FF0000",
         midpoint = 0,
-        na.value = "transparent"
+        breaks = c(-3, -2, -1, -0.5, 0.5, 1, 2, 3),
+        labels = c("<-3", "-2", "-1", "-0.5", "0.5", "1", "2", ">3"),
+        limits = c(-3, 3),
+        oob = scales::squish,
+        na.value = "transparent",
+        guide = ggplot2::guide_colorsteps(
+          barwidth = 20,
+          barheight = 1,
+          show.limits = FALSE,
+          title.position = "top",
+          title.hjust = 0.5,
+          # Outline and ticks to prevent 'white-out' in the center of the bar
+          frame.colour = "black",
+          frame.linewidth = 0.5,
+          ticks.colour = "black",
+          ticks.linewidth = 0.5
+        )
       ) +
-      ggplot2::scale_x_continuous(
-        expand = ggplot2::expansion(mult = 0, add = 0.6),
-        limits = c(global_min - 0.5, global_max + 0.5),
-        breaks = x_breaks %||% seq(global_min, global_max, 5)
-      ) +
-      ggplot2::labs(
-        x = if(show_x) terms[[lang]][["xlab"]] else NULL,
-        y = terms[[lang]][["ylab"]],
-        fill = terms[[lang]][["leg"]]
-      ) +
+      ggplot2::scale_x_continuous(expand = ggplot2::expansion(mult = 0, add = 0.6),
+                                  limits = c(global_min - 0.5, global_max + 0.5),
+                                  breaks = x_breaks %||% seq(global_min, global_max, 5)) +
+      ggplot2::labs(x = if(show_x) terms[[lang]][["xlab"]] else NULL,
+                    y = terms[[lang]][["ylab"]],
+                    fill = terms[[lang]][["leg"]]) +
       ggplot2::theme_bw(base_size = base_size) +
       ggplot2::theme(
         panel.grid = ggplot2::element_blank(),
